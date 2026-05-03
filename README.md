@@ -1,7 +1,7 @@
 ## What is FembArch?
 FembArch is an Arch-based distro made for Femboys (not just for femboys.)
-FembArch is still in early development so dont expect huge things.
-
+FembArch is still in development so you might experience some big updates.
+Although FembArch is not as stable as Arch Linux or CachyOS, Manjaro its still a linux distro, right?
 ## Package Manager
 The package manager for FembArch is fembpkg which is literally just a wrapper for pacman.
 'How do i use fembpkg?'
@@ -25,3 +25,6 @@ cd FembArcher
 chmod +x Fembarcher.sh
 ./Fembarcher.sh
 ```
+
+## We are needing developers.
+There aren't any Developers that work for FembArch currently two persons working on the project.
