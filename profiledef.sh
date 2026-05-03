@@ -8,8 +8,7 @@ iso_application="FembArch Linux Live/Rescue DVD"
 iso_version="$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y.%m.%d)"
 install_dir="fembarch"
 buildmodes=('iso')
-bootmodes=('bios.syslinux'
-           'uefi.systemd-boot')
+bootmodes=('uefi.systemd-boot')
 pacman_conf="pacman.conf"
 airootfs_image_type="squashfs"
 airootfs_image_tool_options=('-comp' 'xz' '-Xbcj' 'x86' '-b' '1M' '-Xdict-size' '1M')
@@ -22,5 +21,9 @@ file_permissions=(
   ["/usr/local/bin/choose-mirror"]="0:0:755"
   ["/usr/local/bin/Installation_guide"]="0:0:755"
   ["/usr/local/bin/livecd-sound"]="0:0:755"
-  ["/usr/local/bin/fembpkg"]="0:0:755"
-)
+  ["/usr/local/bin/fembinstall"]="0:0:755"
+  ["/usr/local/bin/fembinstall-files/installer/fembarch-installer"]="0:0:755"
+  ["/usr/local/bin/fembinstall-files/wifi-connection/wifi.sh"]="0:0:755"
+  ["/usr/local/bin/fembinstall-files/hyprland/config.sh"]="0:0:755"
+  ["/usr/local/bin/fembinstall-files/nvidia-drivers/nvidia-config.sh"]="0:0:755"
+  )

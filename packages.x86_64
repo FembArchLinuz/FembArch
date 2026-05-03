@@ -40,7 +40,6 @@ hdparm
 hyperv
 intel-ucode
 irssi
-iw
 iwd
 jfsutils
 kitty-terminfo
@@ -49,9 +48,9 @@ less
 lftp
 libfido2
 libusb-compat
+base-devel
 linux
 linux-atm
-linux-firmware
 linux-firmware-marvell
 livecd-sounds
 lsscsi
@@ -126,14 +125,4 @@ xdg-utils
 xfsprogs
 xl2tpd
 zsh
-
-# GDM
-gdm
-
-# GNOME
-gnome
-gnome-shell
-
-# Apps
-lollypop
-shortwave
+fish
