@@ -4,26 +4,49 @@ import os
 import sys
 import subprocess
 import time
+import curses
 
 os.system("clear")
 
 def main():
-    subprocess.run(["/usr/local/bin/fembinstall-fules/wifi-connection/wifi.sh"])
-    time.sleep(1)
-    subprocess.run(["/usr/local/bin/fembinstall-files/installer/fembinstall-helper"])
-
+    subprocess.run(["bash", "/usr/local/bin/fembinstall-files/installer/fembinstall-installer"])
+  
 if os.geteuid() != 0:
     print("!!! You need to run fembinstall as root (sudo fembinstall)!")
     sys.exit(1)
 
-print("--------------------------------------------------------------------------------------------------------------------------------------------------------------")
-print("Welcome to fembinstall, here you can install FembArch easily or the manual way.")
-print("It mainly uses bash as base to pacstrap and things for like fembinstall-ez. Note that fembarch won't currently make the localtime or the partitioning for you!")
-print("--------------------------------------------------------------------------------------------------------------------------------------------------------------")
-print("Type ez to install fembarch easily. Type manual to manual install fembarch linux")
-choice = input(":> ")
+def select_menu(stdscr):
 
-if choice == "ez":
+    curses.curs_set(0)
+    curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)
+    
+    options = ["Automated Install", "Manual Install", "Exit"]
+    current_row = 0
+
+    while True:
+        stdscr.addstr("--- FembArch Installer ---\n", curses.color_pair(1) | curses.A_BOLD)
+        stdscr.addstr("[INFO]: Use arrows to select and Enter to confirm.\n\n")
+
+        for i, option in enumerate(options):
+            if i == current_row:
+                # Highlight the selection
+                stdscr.addstr(f"  > {option} <\n", curses.A_REVERSE)
+            else:
+                stdscr.addstr(f"    {option}\n")
+
+        key = stdscr.getch()
+
+        if key == curses.KEY_UP and current_row > 0:
+            current_row -= 1
+        elif key == curses.KEY_DOWN and current_row < len(options) - 1:
+            current_row += 1
+        elif key in [curses.KEY_ENTER, 10, 13]:
+            return options[current_row]
+
+choice = curses.wrapper(select_menu)
+
+if choice == "Manual Install":
+    print("Js go and read the wiki kys :3")
+    sys.exit(0)
+elif choice == "Automated Install"
     main()
-elif choice == "manual":
-    print("Go and read the wiki.")
