@@ -3,17 +3,17 @@
 set -e
 
 echo ""
-echo "[INFO]: This script handles partitioning almost everything you may relax."
+echo "
+ _____              _       _             _       _     _
+|  ___|__ _ __ ___ | |__   / \   _ __ ___| |__   | |   (_)_ __  _   ___  __
+| |_ / _ \ '_ ` _ \| '_ \ / _ \ | '__/ __| '_ \  | |   | | '_ \| | | \ \/ /
+|  _|  __/ | | | | | |_) / ___ \| | | (__| | | | | |___| | | | | |_| |>  <
+|_|  \___|_| |_| |_|_.__/_/   \_\_|  \___|_| |_| |_____|_|_| |_|\__,_/_/\_\ Live ISO
+"
 sleep 5
 
 partitioning_mounting() {
 umount -R /mnt 2>/dev/null || true
-
-# EFI (UEFI) Check.
-if [[ ! -d /sys/firmware/efi ]]; then
-    echo "[ERROR]: UEFI mode required. BIOS not supported."
-    exit 1
-fi
 
 read -p "Select disk (e.g. /dev/sda or /dev/nvme0n1): " DISK
 
@@ -39,11 +39,13 @@ mount "$BOOT_PART" /mnt/boot/efi
 
 
 pacstrapping_sys() {
+    echo "-- Pacstrap --"
     echo "[INFO]: Pacstrapping system....
     pacstrap /mnt base base-devel linux linux-firmware linux-headers arch-install-scripts grub efibootmgr networkmanager nano vim fastfetch hyprland xdg-desktop-portal-hyprland sddm kitty waybar wofi git sudo
 }
 
 genfstabing_sys() {
+    echo "-- Genfstab --"
     echo "[INFO]: Running genfstab command..."
     genfstab -U /mnt >> /mnt/etc/fstab
 }
@@ -75,7 +77,7 @@ chmod +x /mnt/usr/local/bin/nvidia-config || true
 cp -f /usr/local/bin/fembinstall-files/hyprland/config.sh /mnt/usr/local/bin/hyprland-config || true
 chmod +x /mnt/usr/local/bin/hyprland-config || true
 
-cat > "/mnt/usr/local/bin/fembinstall-chroot-file" << 'EOF'
+arch-chroot /mnt bash << 'EOF'
 #!/usr/bin/env bash
 set -e
 
@@ -94,7 +96,8 @@ passwd "$user"
 echo "%wheel ALL=(ALL:ALL) ALL" > /etc/sudoers.d/10-fembarch
 
 # Fastfetch config
-echo "[INFO]: We have our own fastfetch and we are gonna apply it, if you don't want it do after installation:"
+echo "-- Fastfetch Config --"
+echo "[INFO]: We have our own fastfetch config and we are gonna apply it, if you don't want it do after installation:"
 echo "'rm -rf $HOME/.config/fastfetch/config.jsonc' and 'fastfetch --gen-config-full' or 'fastfetch --gen-config'."
 sleep 3
 [[ ! -f $HOME/.config/fastfetch/config.jsonc ]] && cat > "$HOME"/.config/fastfetch/config.jsonc << 'EOF'
@@ -102,15 +105,15 @@ sleep 3
 {
     "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
     "logo": {
-        "source": "arch_small", // Or your custom FembArch logo path
+        "source": "arch_small",
         "padding": {
             "top": 1
         }
     },
     "display": {
-        "separator": " 󰄾 ", // Cool nerd-font arrow
+        "separator": " 󰄾 ",
         "color": {
-            "keys": "magenta", // Use 'magenta' instead of 'pink'
+            "keys": "magenta",
             "title": "magenta"
         }
     },
@@ -132,12 +135,6 @@ sleep 3
             "key": " Shell",
             "keyColor": "magenta"
         },
-        {
-            "type": "custom",
-            "format": "100% a femboy",
-            "key": "Femboy?:",
-            "keyColor": "magenta"
-        },
         "break",
         "colors"
     ]
@@ -145,6 +142,7 @@ sleep 3
 EOF
 
 # Install yay as the created user (makepkg cannot run as root, and that's true btw)
+echo "-- Yay (AUR) --"
 echo "[INFO]: Installing yay as $user..."
 sudo -u "$user" bash << 'EOC'
 cd /home/$USER
@@ -156,22 +154,13 @@ rm -rf yay
 yay -S google-chrome-stable
 EOC
 
+echo "-- Hostname --"
+
 read -p "Hostname (default: fembarch-linux): " hostname
 hostname=${hostname:-fembarch-linux}
 echo "$hostname" > /etc/hostname
 
-echo "Enable femboy command? (y/n)"
-read -p ":> " choice
-
-if [[ "$choice" == "y" ]]; then
-cat > /usr/local/bin/be << 'EOC'
-#!/usr/bin/env bash
-if [[ "$1" == "femboy" ]]; then
-    echo "you are now 100% valid :3"
-fi
-EOC
-chmod +x /usr/local/bin/be
-fi
+echo "-- Bootloader --"
 
 grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=FEMBARCH
 grub-mkconfig -o /boot/grub/grub.cfg
@@ -179,16 +168,10 @@ grub-mkconfig -o /boot/grub/grub.cfg
 systemctl enable NetworkManager
 systemctl enable sddm
 
-echo "Setup complete. Exit chroot and reboot."
-EOF
-
-chmod +x /mnt/usr/local/bin/fembinstall-chroot-file
-
-echo "[INFO]: Entering chroot..."
-arch-chroot /mnt /usr/local/bin/fembinstall-chroot-file
-
-rm /mnt/usr/local/bin/fembinstall-chroot-file
-echo "INFO ]: Done, you can now type 'reboot'! (also note that you need to umount.)."
+echo "Setup complete. Exiting..."
+echo "Umount /mnt and reboot bye <3"
+sleep 1
+exit 0
 }
 
 # Call functions

@@ -1,10 +1,13 @@
 Welcome to FembArch Linux, a distro made for femboys!
-FembArch Linux was made for fun and it's most likely a meme distro (-:-)
-Run fembinstall to install FembArch Linux without needing to put much effort,
+FembArch Linux was made for fun and it's a meme distro (-:-)
+Run install-fembarch to install FembArch Linux without needing to put much effort,
 during the installation process.
+Many people may confuse FembArch Linux to be like Nyarch Linux but no,
+FembArch Linux is a distro made for femboys not for degenerated weebs and no,
+its not anime or blah blah.
 
 ###################################################################################
-For wireless wifi connection use \033[92miwctl\033[0m or nmcli (from NetworkManager)
+For wireless wifi connection use iwctl or nmcli (from NetworkManager)
 
 -----------------------------------------------------------------------------------
 **********************************************************************************
