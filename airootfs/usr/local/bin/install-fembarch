@@ -40,7 +40,7 @@ mount "$BOOT_PART" /mnt/boot/efi
 
 pacstrapping_sys() {
     echo "-- Pacstrap --"
-    echo "[INFO]: Pacstrapping system....
+    echo "[INFO]: Pacstrapping system...."
     pacstrap /mnt base base-devel linux linux-firmware linux-headers arch-install-scripts grub efibootmgr networkmanager nano vim fastfetch hyprland xdg-desktop-portal-hyprland sddm kitty waybar wofi git sudo
 }
 
@@ -68,7 +68,9 @@ EOF
 copying_and_arch_chrooting() {
 
 # Create directory if it doesn't exist before copying :D
-mkdir -p /mnt/usr/local/bin/
+if [[ ! -d /mnt/usr/local/bin/ ]]; then
+    mkdir -p /mnt/usr/local/bin/
+fi
 
 # Use -f to be sure that cp works when copying :0
 cp -f /usr/local/bin/fembinstall-files/nvidia-drivers/nvidia-config.sh /mnt/usr/local/bin/nvidia-config || true
@@ -93,14 +95,17 @@ useradd -m -G wheel -s /bin/bash "$user"
 passwd "$user"
 
 # Give wheel group sudo access
-echo "%wheel ALL=(ALL:ALL) ALL" > /etc/sudoers.d/10-fembarch
+echo "%wheel ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/10-fembarch
 
 # Fastfetch config
 echo "-- Fastfetch Config --"
 echo "[INFO]: We have our own fastfetch config and we are gonna apply it, if you don't want it do after installation:"
 echo "'rm -rf $HOME/.config/fastfetch/config.jsonc' and 'fastfetch --gen-config-full' or 'fastfetch --gen-config'."
+if [[ ! -d /home/$user/.config/fastfetch/ ]]; then
+    mkdir -p /home/"$user"/.config/fastfetch/
+fi
 sleep 3
-[[ ! -f $HOME/.config/fastfetch/config.jsonc ]] && cat > "$HOME"/.config/fastfetch/config.jsonc << 'EOF'
+[[ ! -f /home/$user/.config/fastfetch/config.jsonc ]] && cat > /home/$user/.config/fastfetch/config.jsonc << 'EOF'
 
 {
     "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
@@ -145,13 +150,12 @@ EOF
 echo "-- Yay (AUR) --"
 echo "[INFO]: Installing yay as $user..."
 sudo -u "$user" bash << 'EOC'
-cd /home/$USER
+cd /home/$user
 git clone https://aur.archlinux.org/yay.git
 cd yay
 makepkg -si --noconfirm
 cd ..
 rm -rf yay
-yay -S google-chrome-stable
 EOC
 
 echo "-- Hostname --"
