@@ -2,6 +2,8 @@
 
 set -e
 
+sleep 0.5
+
 partitioning_mounting() {
 umount -R /mnt 2>/dev/null || true
 
@@ -77,12 +79,23 @@ set -e
 [[ -f /usr/local/bin/nvidia-config ]] && /usr/local/bin/nvidia-config
 [[ -f /usr/local/bin/hyprland-config ]] && /usr/local/bin/hyprland-config
 
-echo "Set root password:"
-passwd root
+sleep 0.5
+
+echo "-- Username --"
 
 read -p "Username: " user
 useradd -m -G wheel -s /bin/bash "$user"
-passwd "$user"
+
+sleep 0.5
+
+echo "-- Password --"
+
+echo "What is the password gonna be?"
+read -p "~> " usr_passwd
+USER_PASSWORD="$usr_passwd"
+echo "$user:$USER_PASSWORD" | chpasswd
+
+sleep 0.5
 
 # Give wheel group sudo access
 echo "%wheel ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/10-fembarch
