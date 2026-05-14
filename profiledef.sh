@@ -21,9 +21,7 @@ file_permissions=(
   ["/usr/local/bin/choose-mirror"]="0:0:755"
   ["/usr/local/bin/Installation_guide"]="0:0:755"
   ["/usr/local/bin/livecd-sound"]="0:0:755"
-  ["/usr/local/bin/fembinstall"]="0:0:755"
-  ["/usr/local/bin/fembinstall-files/installer-launcher/fembinstall-launcher-for-installer"]="0:0:755"
-  ["/usr/local/bin/fembinstall-files/installer-launcher/fembinstall-helper"]="0:0:755"
+  ["/usr/local/bin/install-fembarch"]="0:0:755"
   ["/usr/local/bin/fembinstall-files/hyprland/config.sh"]="0:0:755"
   ["/usr/local/bin/fembinstall-files/nvidia-drivers/nvidia-config.sh"]="0:0:755"
   )
