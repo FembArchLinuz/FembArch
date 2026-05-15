@@ -2,43 +2,43 @@
 
 set -e
 
+cat << 'EOF'
+ _____              _       _             _       _     _
+|  ___|__ _ __ ___ | |__   / \   _ __ ___| |__   | |   (_)_ __  _   ___  __
+| |_ / _ \ '_ ` _ \| '_ \ / _ \ | '__/ __| '_ \  | |   | | '_ \| | | \ \/ /
+|  _|  __/ | | | | | |_) / ___ \| | | (__| | | | | |___| | | | | |_| |>  <
+|_|  \___|_| |_| |_|_.__/_/   \_\_|  \___|_| |_| |_____|_|_| |_|\__,_/_/\_\ Installer
+EOF
+
 sleep 0.5
 
+read -p "Select disk (e.g. /dev/nvme0n1): " DISK
+read -p "New User (include username.): " user
+read -p "User Password: " user_passwd
+read -p "Hostname (default: fembarch-linux): " HOSTNAME
+HOSTNAME=${HOSTNAME:-fembarch-linux}
+
 partitioning_mounting() {
-umount -R /mnt 2>/dev/null || true
-
-read -p "Select disk (e.g. /dev/sda or /dev/nvme0n1): " DISK
-
-parted -s "$DISK" mklabel gpt
-parted -s "$DISK" mkpart ESP fat32 1MiB 513MiB
-parted -s "$DISK" set 1 esp on
-parted -s "$DISK" mkpart root ext4 513MiB 100%
-
-udevadm settle
-partprobe "$DISK"
-sleep 2
-
-BOOT_PART=$(lsblk -lnpo NAME "$DISK" | sed -n '2p')
-ROOT_PART=$(lsblk -lnpo NAME "$DISK" | sed -n '3p')
-
-mkfs.fat -F32 "$BOOT_PART"
-mkfs.ext4 -F "$ROOT_PART"
-
-mount "$ROOT_PART" /mnt
-mkdir -p /mnt/boot/efi
-mount "$BOOT_PART" /mnt/boot/efi
+    umount -R /mnt 2>/dev/null || true
+    parted -s "$DISK" mklabel gpt
+    parted -s "$DISK" mkpart ESP fat32 1MiB 513MiB
+    parted -s "$DISK" set 1 esp on
+    parted -s "$DISK" mkpart root ext4 513MiB 100%
+    udevadm settle
+    BOOT_PART=$(lsblk -lnpo NAME "$DISK" | sed -n '2p')
+    ROOT_PART=$(lsblk -lnpo NAME "$DISK" | sed -n '3p')
+    mkfs.fat -F32 "$BOOT_PART"
+    mkfs.ext4 -F "$ROOT_PART"
+    mount "$ROOT_PART" /mnt
+    mkdir -p /mnt/boot/efi
+    mount "$BOOT_PART" /mnt/boot/efi
 }
 
-
 pacstrapping_sys() {
-    echo "-- Pacstrap --"
-    echo "[INFO]: Pacstrapping system...."
     pacstrap /mnt base base-devel linux linux-firmware linux-headers arch-install-scripts grub efibootmgr networkmanager nano vim fastfetch hyprland xdg-desktop-portal-hyprland sddm kitty waybar wofi git sudo
 }
 
 genfstabing_sys() {
-    echo "-- Genfstab --"
-    echo "[INFO]: Running genfstab command..."
     genfstab -U /mnt >> /mnt/etc/fstab
 }
 
@@ -58,132 +58,67 @@ EOF
 }
 
 copying_and_arch_chrooting() {
-
-# Create directory if it doesn't exist before copying :D
-if [[ ! -d /mnt/usr/local/bin/ ]]; then
     mkdir -p /mnt/usr/local/bin/
-fi
+    cp -f /usr/local/bin/fembinstall-files/nvidia-drivers/nvidia-config.sh /mnt/usr/local/bin/nvidia-config || true
+    cp -f /usr/local/bin/fembinstall-files/hyprland/config.sh /mnt/usr/local/bin/hyprland-config || true
+    chmod +x /mnt/usr/local/bin/nvidia-config /mnt/usr/local/bin/hyprland-config || true
 
-# Use -f to be sure that cp works when copying :0
-cp -f /usr/local/bin/fembinstall-files/nvidia-drivers/nvidia-config.sh /mnt/usr/local/bin/nvidia-config || true
-chmod +x /mnt/usr/local/bin/nvidia-config || true
+    arch-chroot /mnt /bin/bash <<EOF
+    set -e
 
-cp -f /usr/local/bin/fembinstall-files/hyprland/config.sh /mnt/usr/local/bin/hyprland-config || true
-chmod +x /mnt/usr/local/bin/hyprland-config || true
+    [[ -f /usr/local/bin/nvidia-config ]] && /usr/local/bin/nvidia-config
+    [[ -f /usr/local/bin/hyprland-config ]] && /usr/local/bin/hyprland-config
 
-arch-chroot /mnt bash << 'EOF'
-#!/usr/bin/env bash
-set -e
+    useradd -m -G wheel -s /bin/bash "$user"
+    echo "$user:$user_passwd" | chpasswd
+    echo "%wheel ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/10-fembarch
 
-# Run configs if they exist (AND ONLY IF THEY EXIST)
-[[ -f /usr/local/bin/nvidia-config ]] && /usr/local/bin/nvidia-config
-[[ -f /usr/local/bin/hyprland-config ]] && /usr/local/bin/hyprland-config
+    echo "$HOSTNAME" > /etc/hostname
 
-sleep 0.5
-
-echo "-- Username --"
-
-read -p "Username: " user
-useradd -m -G wheel -s /bin/bash "$user"
-
-sleep 0.5
-
-echo "-- Password --"
-
-echo "What is the password gonna be?"
-read -p "~> " usr_passwd
-USER_PASSWORD="$usr_passwd"
-echo "$user:$USER_PASSWORD" | chpasswd
-
-sleep 0.5
-
-# Give wheel group sudo access
-echo "%wheel ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/10-fembarch
-
-# Fastfetch config
-echo "-- Fastfetch Config --"
-echo "[INFO]: We have our own fastfetch config and we are gonna apply it, if you don't want it do after installation:"
-echo "'rm -rf $HOME/.config/fastfetch/config.jsonc' and 'fastfetch --gen-config-full' or 'fastfetch --gen-config'."
-if [[ ! -d /home/$user/.config/fastfetch/ ]]; then
-    mkdir -p /home/"$user"/.config/fastfetch/
-fi
-sleep 3
-[[ ! -f /home/$user/.config/fastfetch/config.jsonc ]] && cat > /home/$user/.config/fastfetch/config.jsonc << 'EOF'
-
+    mkdir -p /home/$user/.config/fastfetch/
+    cat > /home/$user/.config/fastfetch/config.jsonc <<'EOC'
 {
-    "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+    "\$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
     "logo": {
         "source": "arch_small",
-        "padding": {
-            "top": 1
-        }
+        "padding": { "top": 1 }
     },
     "display": {
         "separator": " 󰄾 ",
-        "color": {
-            "keys": "magenta",
-            "title": "magenta"
-        }
+        "color": { "keys": "magenta", "title": "magenta" }
     },
     "modules": [
         "title",
         "separator",
-        {
-            "type": "os",
-            "key": "󰣇 Distro",
-            "keyColor": "magenta"
-        },
-        {
-            "type": "kernel",
-            "key": "󰌢 Kernel",
-            "keyColor": "magenta"
-        },
-        {
-            "type": "shell",
-            "key": " Shell",
-            "keyColor": "magenta"
-        },
+        { "type": "os", "key": "󰣇 Distro", "keyColor": "magenta" },
+        { "type": "kernel", "key": "󰌢 Kernel", "keyColor": "magenta" },
+        { "type": "shell", "key": " Shell", "keyColor": "magenta" },
         "break",
         "colors"
     ]
 }
-EOF
-
-# Install yay as the created user (makepkg cannot run as root, and that's true btw)
-echo "-- Yay (AUR) --"
-echo "[INFO]: Installing yay as $user..."
-sudo -u "$user" bash << 'EOC'
-cd /home/$user
-git clone https://aur.archlinux.org/yay.git
-cd yay
-makepkg -si --noconfirm
-cd ..
-rm -rf yay
 EOC
+    chown -R $user:$user /home/$user/.config
 
-echo "-- Hostname --"
+    sudo -u $user bash -c "cd /home/$user && git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si --noconfirm && cd .. && rm -rf yay"
 
-read -p "Hostname (default: fembarch-linux): " hostname
-hostname=${hostname:-fembarch-linux}
-echo "$hostname" > /etc/hostname
-
-echo "-- Bootloader --"
-
-grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=FEMBARCH
-grub-mkconfig -o /boot/grub/grub.cfg
-
-systemctl enable NetworkManager
-systemctl enable sddm
-
-echo "Setup complete. Exiting..."
-echo "Umount /mnt and reboot bye <3"
-sleep 1
-exit 0
+    grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=FEMBARCH
+    grub-mkconfig -o /boot/grub/grub.cfg
+    systemctl enable NetworkManager sddm
+    echo "Last check mate..."
+    mkinitcpio -P
+    exit 0
+EOF
 }
 
-# Call functions
 partitioning_mounting
 pacstrapping_sys
 genfstabing_sys
 os_release_things
 copying_and_arch_chrooting
+
+echo "Installed FembArch Linux VER: 1.3.0"
+sleep 1
+echo "Umounting filesystem and rebooting..."
+umount -R /mnt
+reboot
