@@ -22,6 +22,5 @@ file_permissions=(
   ["/usr/local/bin/Installation_guide"]="0:0:755"
   ["/usr/local/bin/livecd-sound"]="0:0:755"
   ["/usr/local/bin/install-fembarch"]="0:0:755"
-  ["/usr/local/bin/fembinstall-files/hyprland/config.sh"]="0:0:755"
   ["/usr/local/bin/fembinstall-files/nvidia-drivers/nvidia-config.sh"]="0:0:755"
   )
