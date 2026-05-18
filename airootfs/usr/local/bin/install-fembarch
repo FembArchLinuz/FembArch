@@ -2,6 +2,13 @@
 
 set -e
 
+if ! ping -c 1 -W 3 google.com &>/dev/null; then
+    echo "No internet connection detected, probably you forgot to? - fucking connect to your network then re-run."
+    exit 1
+fi
+
+echo -e "\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m"
+
 cat << 'EOF'
  _____              _       _             _       _     _
 |  ___|__ _ __ ___ | |__   / \   _ __ ___| |__   | |   (_)_ __  _   ___  __
@@ -10,23 +17,35 @@ cat << 'EOF'
 |_|  \___|_| |_| |_|_.__/_/   \_\_|  \___|_| |_| |_____|_|_| |_|\__,_/_/\_\ Installer
 EOF
 
-sleep 0.5
+echo -e "\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m"
 
-read -p "Select disk (e.g. /dev/nvme0n1): " DISK
+echo ""
 read -p "New User (include username.): " user
 read -p "User Password: " user_passwd
 read -p "Hostname (default: fembarch-linux): " HOSTNAME
 HOSTNAME=${HOSTNAME:-fembarch-linux}
 
+sleep 0.5
+
+read -p "Select disk (e.g. /dev/nvme0n1): " DISK
+
 partitioning_mounting() {
+    echo "^^ Partitioning ^^"
     umount -R /mnt 2>/dev/null || true
     parted -s "$DISK" mklabel gpt
     parted -s "$DISK" mkpart ESP fat32 1MiB 513MiB
     parted -s "$DISK" set 1 esp on
     parted -s "$DISK" mkpart root ext4 513MiB 100%
     udevadm settle
-    BOOT_PART=$(lsblk -lnpo NAME "$DISK" | sed -n '2p')
-    ROOT_PART=$(lsblk -lnpo NAME "$DISK" | sed -n '3p')
+
+    if [[ "$DISK" == *"nvme"* || "$DISK" == *"mmcblk"* ]]; then
+        BOOT_PART="${DISK}p1"
+        ROOT_PART="${DISK}p2"
+    else
+        BOOT_PART="${DISK}1"
+        ROOT_PART="${DISK}2"
+    fi
+
     mkfs.fat -F32 "$BOOT_PART"
     mkfs.ext4 -F "$ROOT_PART"
     mount "$ROOT_PART" /mnt
@@ -35,14 +54,17 @@ partitioning_mounting() {
 }
 
 pacstrapping_sys() {
-    pacstrap /mnt base base-devel linux linux-firmware linux-headers arch-install-scripts grub efibootmgr networkmanager nano vim fastfetch hyprland xdg-desktop-portal-hyprland sddm kitty waybar wofi git sudo
+    echo "^^ Pacstrapping New-System ^^"
+    pacstrap /mnt base base-devel nano vi vim fastfetch git arch-install-scripts gparted gnome gnome-shell gnome-terminal gdm gnome-extra grub efibootmgr linux linux-firmware linux-headers
 }
 
 genfstabing_sys() {
+    echo "^^ Genftsabbing New-System ^^"
     genfstab -U /mnt >> /mnt/etc/fstab
 }
 
 os_release_things() {
+echo "^^ Life is a beauty right? ^^"
 cat > "/mnt/etc/os-release" << 'EOF'
 NAME="FembArch Linux"
 PRETTY_NAME="FembArch Linux"
@@ -60,14 +82,23 @@ EOF
 copying_and_arch_chrooting() {
     mkdir -p /mnt/usr/local/bin/
     cp -f /usr/local/bin/fembinstall-files/nvidia-drivers/nvidia-config.sh /mnt/usr/local/bin/nvidia-config || true
-    cp -f /usr/local/bin/fembinstall-files/hyprland/config.sh /mnt/usr/local/bin/hyprland-config || true
-    chmod +x /mnt/usr/local/bin/nvidia-config /mnt/usr/local/bin/hyprland-config || true
 
+    echo "^^ Arch-chroot is our saviour ^^"
     arch-chroot /mnt /bin/bash <<EOF
     set -e
 
+    systemctl enable gdm
+
     [[ -f /usr/local/bin/nvidia-config ]] && /usr/local/bin/nvidia-config
-    [[ -f /usr/local/bin/hyprland-config ]] && /usr/local/bin/hyprland-config
+
+    echo "^^ I actually don't know why locale gen even exists ^^"
+
+    echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
+    locale-gen
+
+    echo "Idk wat timezone and shart you are so ima just use the american time (pwease don't be angy on me)"
+    ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
+    hwclock --systohc
 
     useradd -m -G wheel -s /bin/bash "$user"
     echo "$user:$user_passwd" | chpasswd
@@ -75,36 +106,13 @@ copying_and_arch_chrooting() {
 
     echo "$HOSTNAME" > /etc/hostname
 
-    mkdir -p /home/$user/.config/fastfetch/
-    cat > /home/$user/.config/fastfetch/config.jsonc <<'EOC'
-{
-    "\$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
-    "logo": {
-        "source": "arch_small",
-        "padding": { "top": 1 }
-    },
-    "display": {
-        "separator": " 󰄾 ",
-        "color": { "keys": "magenta", "title": "magenta" }
-    },
-    "modules": [
-        "title",
-        "separator",
-        { "type": "os", "key": "󰣇 Distro", "keyColor": "magenta" },
-        { "type": "kernel", "key": "󰌢 Kernel", "keyColor": "magenta" },
-        { "type": "shell", "key": " Shell", "keyColor": "magenta" },
-        "break",
-        "colors"
-    ]
-}
-EOC
+    mkdir -p /home/$user/.config/
     chown -R $user:$user /home/$user/.config
 
-    sudo -u $user bash -c "cd /home/$user && git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si --noconfirm && cd .. && rm -rf yay"
+    runuser -l "$user" -c "git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si --noconfirm"
 
     grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=FEMBARCH
     grub-mkconfig -o /boot/grub/grub.cfg
-    systemctl enable NetworkManager sddm
     echo "Last check mate..."
     mkinitcpio -P
     exit 0
@@ -117,7 +125,18 @@ genfstabing_sys
 os_release_things
 copying_and_arch_chrooting
 
-echo "Installed FembArch Linux VER: 1.3.0"
+cat << 'EOF'
+ _____              _       _             _       _     _
+|  ___|__ _ __ ___ | |__   / \   _ __ ___| |__   | |   (_)_ __  _   ___  __
+| |_ / _ \ '_ ` _ \| '_ \ / _ \ | '__/ __| '_ \  | |   | | '_ \| | | \ \/ /
+|  _|  __/ | | | | | |_) / ___ \| | | (__| | | | | |___| | | | | |_| |>  <
+|_|  \___|_| |_| |_|_.__/_/   \_\_|  \___|_| |_| |_____|_|_| |_|\__,_/_/\_\
+EOF
+echo "Successfully installed FembArch Linux VER: 1.3.0"
+echo "| User is named: $user"
+echo "| Password is: $user_passwd"
+echo "| Computer name is: $HOSTNAME"
+echo "| Installed FembArch on $DISK"
 sleep 1
 echo "Umounting filesystem and rebooting..."
 umount -R /mnt
