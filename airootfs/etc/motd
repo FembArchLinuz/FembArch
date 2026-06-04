@@ -1,7 +1,42 @@
-Welcome to FembArch Linux, a distro made for femboys!
-FembArch Linux was made for fun and it's a meme distro (-:-)
-Run install-fembarch to install FembArch Linux without needing to put much effort,
-during the installation process.
+------------------------------------------------------------------------------
+
+ _____              _       _             _       _     _
+|  ___|__ _ __ ___ | |__   / \   _ __ ___| |__   | |   (_)_ __  _   ___  __
+| |_ / _ \ '_ ` _ \| '_ \ / _ \ | '__/ __| '_ \  | |   | | '_ \| | | \ \/ /
+|  _|  __/ | | | | | |_) / ___ \| | | (__| | | | | |___| | | | | |_| |>  <
+|_|  \___|_| |_| |_|_.__/_/   \_\_|  \___|_| |_| |_____|_|_| |_|\__,_/_/\_\
+
+
+Welcome to the FembArch Linux Live ISO!
 
 ###################################################################################
 For wireless wifi connection use iwctl or nmcli (from NetworkManager)
+###################################################################################
+
+##################################################################################
+
+---------------------------------------------------------------------------------
+It is recommended to:
+---------------------------------------------------------------------------------
+
+-- Test this distro (distrobution) inside of an virtual machine before any install on a real machine.
+-- Install this disto on a different hard disk (drive) instead of your main hard disk (drive)
+
+###################################################################################
+
+-----------------------------------------------------------------------------------
+WARNING:
+-----------------------------------------------------------------------------------
+
+-- The correct version of the ISO is XX~Nya, if it's another one like Premium or something its most likely a scam!
+-- This distro cannot be dualbooted, dualbooting may be added in future versions of FembArch.
+
+----------------------------------------------------------------------------------
+
+##################################################################################
+
+----------------------------------------------------------------------------------
+To install this distro, type "install-fembarch" and just press enter.
+----------------------------------------------------------------------------------
+
+#################################################################################
