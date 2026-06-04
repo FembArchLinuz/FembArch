@@ -1,36 +1,43 @@
 #!/usr/bin/env bash
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Installer for FembArch v1.5.0 XX~Nya
+# warning: this installer can break in some situations
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 set -e
 
 if ! ping -c 1 -W 3 google.com &>/dev/null; then
-    echo "No internet connection detected, probably you forgot to? - fucking connect to your network then re-run."
+    echo "FembArch: Hmmm i smell no internet connection, probably you forgot to connect to the internet?"
+    echo "Error code 291: Internet Connection not avalible"
     exit 1
 fi
-
-echo -e "\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m"
 
 cat << 'EOF'
  _____              _       _             _       _     _
 |  ___|__ _ __ ___ | |__   / \   _ __ ___| |__   | |   (_)_ __  _   ___  __
 | |_ / _ \ '_ ` _ \| '_ \ / _ \ | '__/ __| '_ \  | |   | | '_ \| | | \ \/ /
 |  _|  __/ | | | | | |_) / ___ \| | | (__| | | | | |___| | | | | |_| |>  <
-|_|  \___|_| |_| |_|_.__/_/   \_\_|  \___|_| |_| |_____|_|_| |_|\__,_/_/\_\ Installer
+|_|  \___|_| |_| |_|_.__/_/   \_\_|  \___|_| |_| |_____|_|_| |_|\__,_/_/\_\
 EOF
-
-echo -e "\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m\e[31m═\e[33m═\e[32m═\e[36m═\e[34m═\e[35m═\e[0m"
-
 echo ""
-read -p "New User (include username.): " user
+
+read -p "New User: " user
 read -p "User Password: " user_passwd
 read -p "Hostname (default: fembarch-linux): " HOSTNAME
 HOSTNAME=${HOSTNAME:-fembarch-linux}
 
-sleep 0.5
+OPTIONS=(
+    "KDE" "Desktop Environment"
+    "GNOME" "Desktop Environment"
+    "TTY" "Pure TTY"
+)
+
+de=$(whiptail --title "Choose DE" --menu "Select an DE (Desktop Environment):" 15 50 3 "${OPTIONS[@]}" 3>&1 1>&2 2>&3)
 
 read -p "Select disk (e.g. /dev/nvme0n1): " DISK
 
 partitioning_mounting() {
-    echo "^^ Partitioning ^^"
     umount -R /mnt 2>/dev/null || true
     parted -s "$DISK" mklabel gpt
     parted -s "$DISK" mkpart ESP fat32 1MiB 513MiB
@@ -53,19 +60,30 @@ partitioning_mounting() {
     mount "$BOOT_PART" /mnt/boot/efi
 }
 
-pacstrapping_sys() {
-    echo "^^ Pacstrapping New-System ^^"
-    pacstrap /mnt base base-devel nano vi vim fastfetch git arch-install-scripts gparted gnome gnome-shell gnome-terminal gdm gnome-extra grub efibootmgr linux linux-firmware linux-headers
+pacstrapping_tty() {
+    pacstrap /mnt base base-devel git nano vi vim fastfetch arch-install-scripts gparted efibootmgr grub linux linux-firmware linux-headers
+}
+
+pacstrapping_gnome() {
+pacstrap /mnt base base-devel nano vi vim fastfetch git arch-install-scripts gparted gnome gnome-shell gnome-terminal gdm efibootmgr grub linux linux-firmware linux-headers
+arch-chroot /mnt /bin/bash <<EOF
+systemctl enable gdm
+EOF
+}
+
+pacstrapping_kde() {
+pacstrap /mnt base base-devel nano vi vim fastfetch git arch-install-scripts gparted plasma-desktop sddm konsole dolphin plasma-systemmonitor systemsettings bluedevil plasma-nm ocean-sound-theme efibootmgr grub linux linux-firmware linux-headers
+arch-chroot /mnt /bin/bash <<EOF
+systemctl enable sddm
+EOF
 }
 
 genfstabing_sys() {
-    echo "^^ Genftsabbing New-System ^^"
     genfstab -U /mnt >> /mnt/etc/fstab
 }
 
 os_release_things() {
-echo "^^ Life is a beauty right? ^^"
-cat > "/mnt/etc/os-release" << 'EOF'
+    cat > "/mnt/etc/os-release" << 'EOF'
 NAME="FembArch Linux"
 PRETTY_NAME="FembArch Linux"
 ID=arch
@@ -81,49 +99,90 @@ EOF
 
 copying_and_arch_chrooting() {
     mkdir -p /mnt/usr/local/bin/
-    cp -f /usr/local/bin/fembinstall-files/nvidia-drivers/nvidia-config.sh /mnt/usr/local/bin/nvidia-config || true
+    if [[ -f /usr/local/bin/fembinstall-files/nvidia-drivers/nvidia-config.sh ]]; then
+        cp -f /usr/local/bin/fembinstall-files/nvidia-drivers/nvidia-config.sh /mnt/usr/local/bin/nvidia-config
+    fi
 
-    echo "^^ Arch-chroot is our saviour ^^"
     arch-chroot /mnt /bin/bash <<EOF
     set -e
 
-    systemctl enable gdm
+    [[ -f /usr/local/bin/nvidia-config ]] && bash /usr/local/bin/nvidia-config
 
-    [[ -f /usr/local/bin/nvidia-config ]] && /usr/local/bin/nvidia-config
-
-    echo "^^ I actually don't know why locale gen even exists ^^"
+    echo "^^ Idk why locale-gen even exists lol ^^"
 
     echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
     locale-gen
+    echo "LANG=en_US.UTF-8" > /etc/locale.conf
 
-    echo "Idk wat timezone and shart you are so ima just use the american time (pwease don't be angy on me)"
-    ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
+    echo "^^ Setting the local time :3 ^^"
+
+    AUTO_TZ=\$(curl -s https://ipapi.co/timezone || echo "UTC")
+    ln -sf /usr/share/zoneinfo/\$AUTO_TZ /etc/localtime
     hwclock --systohc
 
-    useradd -m -G wheel -s /bin/bash "$user"
-    echo "$user:$user_passwd" | chpasswd
+    echo "^^ Creating tha user ^^"
+
+    useradd -m -G wheel -s /bin/bash $user
+    echo $user:$user_passwd | chpasswd
     echo "%wheel ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/10-fembarch
+
+    echo "^^ Setting Hostname... ^^"
 
     echo "$HOSTNAME" > /etc/hostname
 
-    mkdir -p /home/$user/.config/
+    echo "^^ Creating .config/ directory... ^^"
+
+    mkdir -p /home/$user/.config
     chown -R $user:$user /home/$user/.config
 
-    runuser -l "$user" -c "git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si --noconfirm"
+    echo "^^ Installing yay for access to the AUR packages! ^^"
 
-    grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=FEMBARCH
+    cd /tmp
+    runuser -l "$user" -c "git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si --noconfirm"
+    rm -rf /tmp/yay
+
+    echo "^^ Installing the bootloader! ^^"
+
+    grub-install --target=x86_64-efi --efi-directory=/boot/efi --boot-directory=/boot --bootloader-id="FembArch"
     grub-mkconfig -o /boot/grub/grub.cfg
-    echo "Last check mate..."
+
     mkinitcpio -P
-    exit 0
 EOF
 }
 
 partitioning_mounting
-pacstrapping_sys
+
+if [[ "$de" == "KDE" ]]; then
+    pacstrapping_kde
+elif [[ "$de" == "GNOME" ]]; then
+    pacstrapping_gnome
+elif [[ "$de" == "TTY" ]]; then
+    pacstrapping_tty
+else
+    echo "[SYSTEM]: We only accept Desktop Environments such like KDE and GNOME! (Also TTY)"
+    exit 1
+fi
+
 genfstabing_sys
 os_release_things
 copying_and_arch_chrooting
+
+mkdir -p /mnt/usr/share/fembarch/ascii
+cat << 'EOF' > /mnt/usr/share/fembarch/ascii/.ascii_for_fembarch.txt
+        / \
+       /   \
+      /     \
+     _\      \
+    /         \
+   /           \
+  /      __   \_\
+ /      /  \     \
+/__,--'    '--,___\
+EOF
+
+cat << 'EOF' >> /mnt/home/"$user"/.bashrc
+alias nyafetch="fastfetch --logo /usr/share/fembarch/ascii/.ascii_for_fembarch.txt"
+EOF
 
 cat << 'EOF'
  _____              _       _             _       _     _
@@ -132,12 +191,32 @@ cat << 'EOF'
 |  _|  __/ | | | | | |_) / ___ \| | | (__| | | | | |___| | | | | |_| |>  <
 |_|  \___|_| |_| |_|_.__/_/   \_\_|  \___|_| |_| |_____|_|_| |_|\__,_/_/\_\
 EOF
-echo "Successfully installed FembArch Linux VER: 1.3.0"
-echo "| User is named: $user"
-echo "| Password is: $user_passwd"
-echo "| Computer name is: $HOSTNAME"
-echo "| Installed FembArch on $DISK"
-sleep 1
-echo "Umounting filesystem and rebooting..."
-umount -R /mnt
-reboot
+
+echo "Successfully installed FembArch Linux v1.5.0 XX~Nya"
+echo "| User.name: $user"
+echo "| System Name (Hostname): $HOSTNAME"
+echo "| Installed FembArch on Disk: $DISK"
+echo ""
+
+sleep 5
+
+LAST_QUESTION=(
+    "1" "Enter chroot to customize the brand new system"
+    "2" "Exit script without doing anything."
+    "3" "Unmount filesystem (fs) and reboot the system (sys)."
+)
+
+wa=$(whiptail --title "Installation Complete" --menu "Choose: " 15 60 3 "${LAST_QUESTION[@]}" 3>&1 1>&2 2>&3)
+
+if [[ "$wa" == "1" ]]; then
+    arch-chroot /mnt # Chroots into /mnt
+elif [[ "$wa" == "2" ]]; then
+    exit 0 # exits with code 0 basically that everything went fine.
+else
+    echo "Unmounting filesystems..."
+    umount -R /mnt
+    sleep 0.5
+    echo "Done, now rebooting bye user :3"
+    sleep 1
+    reboot
+fi
