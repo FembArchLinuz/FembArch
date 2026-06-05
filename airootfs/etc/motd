@@ -19,8 +19,8 @@ For wireless wifi connection use iwctl or nmcli (from NetworkManager)
 It is recommended to:
 ---------------------------------------------------------------------------------
 
--- Test this distro (distrobution) inside of an virtual machine before any install on a real machine.
--- Install this disto on a different hard disk (drive) instead of your main hard disk (drive)
+-- Test this distro (distribution) inside of an virtual machine before any install on a real machine.
+-- Install this distro on a different hard disk (drive) instead of your main hard disk (drive)
 
 ###################################################################################
 
@@ -39,4 +39,6 @@ WARNING:
 To install this distro, type "install-fembarch" and just press enter.
 ----------------------------------------------------------------------------------
 
-#################################################################################
+##################################################################################
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
