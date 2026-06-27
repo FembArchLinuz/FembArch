@@ -70,7 +70,7 @@ pacstrapping_hyprland() {
     arch-chroot /mnt /bin/bash <<EOF
 systemctl enable sddm
 
-mkdir -p /root/.config/hypr/hyprland.conf
+mkdir -p /root/.config/hypr/hyprland.lua
 
 hl.monitor({
     output   = "",
@@ -346,6 +346,7 @@ EOF
 copying_and_arch_chrooting() {
     mkdir -p /mnt/usr/local/bin/
     mkdir -p /mnt/usr/share/wallpaper-for-fembarch/
+    cp /usr/local/bin/fembinstall-files/femboy.jpg /mnt/usr/share/wallpaper-for-fembarch/femboy.jpg
     if [[ -f /usr/local/bin/fembinstall-files/nvidia-drivers/nvidia-config.sh ]]; then
         cp -f /usr/local/bin/fembinstall-files/nvidia-drivers/nvidia-config.sh /mnt/usr/local/bin/nvidia-config
     fi
