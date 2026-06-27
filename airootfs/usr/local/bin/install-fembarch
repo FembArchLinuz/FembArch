@@ -70,7 +70,7 @@ pacstrapping_hyprland() {
     arch-chroot /mnt /bin/bash <<EOF
 systemctl enable sddm
 
-mkdir -p /root/.config/hypr/hyprland.lua
+cat > "/root/.config/hypr/hyprland.lua" << 'EOF'
 
 hl.monitor({
     output   = "",
@@ -365,7 +365,15 @@ copying_and_arch_chrooting() {
     echo "~~ Setting the local time :3 ~~"
 
     AUTO_TZ=\$(curl -s https://ipapi.co/timezone || echo "UTC")
-    ln -sf /usr/share/zoneinfo/\$AUTO_TZ /etc/localtime
+
+    if [[ -e /usr/share/zoneinfo/\$AUTO_TZ ]]; then
+        echo "Detected timezone: \$AUTO_TZ :]"
+        ln -sf /usr/share/zoneinfo/\$AUTO_TZ /etc/localtime
+    else
+        echo "Could not detect timezone, defaulting to UTC :["
+        ln -sf /usr/share/zoneinfo/UTC /etc/localtime
+    fi
+    
     hwclock --systohc
 
     echo "~~ Creating tha user :3 ~~"
@@ -382,7 +390,7 @@ copying_and_arch_chrooting() {
 
     mkdir -p /home/$user/.config
     chown -R $user:$user /home/$user/.config
-    cp /root/.config/hypr/hyprland.conf /home/$user/.config/hypr/hyprland.lua
+    cp /root/.config/hypr/hyprland.lua /home/$user/.config/hypr/hyprland.lua
 
     echo "~~ Installing yay for access to the AUR packages! ~~"
 
