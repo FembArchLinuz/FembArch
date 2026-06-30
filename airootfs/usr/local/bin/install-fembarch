@@ -31,12 +31,12 @@ OPTIONS=(
     "TTY" "Pure TTY"
 )
 
-de=$(whiptail --title "Choose DE" --menu "Select an DE (Desktop Environment):" 15 50 3 "${OPTIONS[@]}" 3>&1 1>&2 2>&3)
+de=$(whiptail --title "Choose WM/DE" --menu "Select an WM/DE:" 15 50 3 "${OPTIONS[@]}" 3>&1 1>&2 2>&3)
 
 read -p "Select disk (e.g. /dev/nvme0n1): " DISK
 
 partitioning_mounting() {
-    echo "~~ Partitioning :D ~~"
+    echo "[ INFO ] '0.1' Partitioning"
     umount -R /mnt 2>/dev/null || true
     parted -s "$DISK" mklabel gpt
     parted -s "$DISK" mkpart ESP fat32 1MiB 513MiB
@@ -60,18 +60,20 @@ partitioning_mounting() {
 }
 
 pacstrapping_tty() {
-    echo "~~ Pacstrapping :D ~~"
+    echo "[ INFO ] '0.2' Pacstrapping system.."
     pacstrap /mnt base base-devel git nano vi vim fastfetch arch-install-scripts gparted efibootmgr grub linux linux-firmware linux-headers
 }
 
 pacstrapping_hyprland() {
-    echo "~~ Pacstrapping :D ~~"
+    echo "[ INFO ] '0.2' Pacstrapping system.. "
     pacstrap /mnt base base-devel nano vi vim fastfetch git arch-install-scripts gparted hyprland xdg-desktop-portal xdg-desktop-portal-hyprland alacritty rofi waybar dolphin sddm efibootmgr grub linux linux-firmware linux-headers
+    echo "[ INFO ] '0.3 Enabling sddm, creating config.'"
     arch-chroot /mnt /bin/bash <<EOF
 systemctl enable sddm
 
-cat > "/root/.config/hypr/hyprland.lua" << 'EOF'
+mkdir -p /root/.config/hypr/
 
+cat > /root/.config/hypr/hyprland.lua << 'EOF'
 hl.monitor({
     output   = "",
     mode     = "preferred",
@@ -344,8 +346,10 @@ EOF
 }
 
 copying_and_arch_chrooting() {
+    echo "[ INFO ] '0.4' creating directories..."
     mkdir -p /mnt/usr/local/bin/
     mkdir -p /mnt/usr/share/wallpaper-for-fembarch/
+    echo "[ INFO ] copying nvidia configs...."
     cp /usr/local/bin/fembinstall-files/femboy.jpg /mnt/usr/share/wallpaper-for-fembarch/femboy.jpg
     if [[ -f /usr/local/bin/fembinstall-files/nvidia-drivers/nvidia-config.sh ]]; then
         cp -f /usr/local/bin/fembinstall-files/nvidia-drivers/nvidia-config.sh /mnt/usr/local/bin/nvidia-config
@@ -356,49 +360,39 @@ copying_and_arch_chrooting() {
 
     [[ -f /usr/local/bin/nvidia-config ]] && bash /usr/local/bin/nvidia-config
 
-    echo "~~ Idk why locale-gen even exists lol ~~"
+    echo "[ INFO ] '0.5' locale-gen things"
 
     echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
     locale-gen
-    echo "LANG=en_US.UTF-8" > /etc/locale.conf
+    echo "LANG=en_US.UTF-8" > /etc/locale.conf-+
 
-    echo "~~ Setting the local time :3 ~~"
+    echo "[ INFO ] '0.6' Note that in this versison localtime is not set and after installation or when in FembArch you need to set the localtime (it's optional)"
 
-    AUTO_TZ=\$(curl -s https://ipapi.co/timezone || echo "UTC")
-
-    if [[ -e /usr/share/zoneinfo/\$AUTO_TZ ]]; then
-        echo "Detected timezone: \$AUTO_TZ :]"
-        ln -sf /usr/share/zoneinfo/\$AUTO_TZ /etc/localtime
-    else
-        echo "Could not detect timezone, defaulting to UTC :["
-        ln -sf /usr/share/zoneinfo/UTC /etc/localtime
-    fi
-    
-    hwclock --systohc
-
-    echo "~~ Creating tha user :3 ~~"
+    echo "[ INFO ] '0.7' Creating user"
 
     useradd -m -G wheel -s /bin/bash $user
     echo $user:$user_passwd | chpasswd
     echo "%wheel ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/10-fembarch
 
-    echo "~~ Setting Hostname :D ~~"
+    echo "[ INFO ] '0.8' Setting hostname"
 
     echo "$HOSTNAME" > /etc/hostname
 
-    echo "~~ Creating .config/ directory... ~~"
+    echo "[ INFO ] '0.9' Creating .config/ directory..."
 
     mkdir -p /home/$user/.config
     chown -R $user:$user /home/$user/.config
-    cp /root/.config/hypr/hyprland.lua /home/$user/.config/hypr/hyprland.lua
+    
+    echo "[ INFO ] '10.0' Copying config for Hyprland..."
+    cp /root/.config/hypr/hyprland.conf /home/$user/.config/hypr/hyprland.lua
 
-    echo "~~ Installing yay for access to the AUR packages! ~~"
+    echo "[ INFO ] '10.1' Installing yay for access to the AUR packages (You can remove it after install if you do not want AUR packages.)"
 
     cd /tmp
     runuser -l "$user" -c "git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si --noconfirm"
     rm -rf /tmp/yay
 
-    echo "^^ Installing the bootloader! ^^"
+    echo "[ INFO ] '10.2' Installing bootloader."
 
     echo 'GRUB_DISTRIBUTOR="FembArch"' >> /etc/default/grub
 
@@ -451,7 +445,7 @@ cat << 'EOF'
 |_|  \___|_| |_| |_|_.__/_/   \_\_|  \___|_| |_| |_____|_|_| |_|\__,_/_/\_\
 EOF
 
-echo "Successfully installed FembArch Linux v2.1.0 Nyap"
+echo "Successfully installed FembArch Linux v2.1.0 Yararara-Nya"
 echo "| User.name: $user"
 echo "| System Name (Hostname): $HOSTNAME"
 echo "| Installed FembArch on Disk: $DISK"
