@@ -10,7 +10,12 @@
 Welcome to the FembArch Linux Live ISO!
 
 ###################################################################################
-For wireless wifi connection use iwctl or nmcli (from NetworkManager)
+----------------------------------------------------------------------------------
+Connecting to the internet:
+----------------------------------------------------------------------------------
+Run nmcli dev wifi connect <SSID> password <network-password>
+and then enter in your password and press enter and you are done.
+
 ###################################################################################
 
 ##################################################################################
@@ -28,8 +33,7 @@ It is recommended to:
 WARNING:
 -----------------------------------------------------------------------------------
 
--- The correct version of the ISO is Yararara-Nya, if it's another one like Premium or something its most likely a scam!
--- This distro cannot be dualbooted, dualbooting may be added in future versions of FembArch.
+-- The correct version of the ISO is Yararara-Nya, if it's another one like Premium or something its most likely a scam.
 
 ##################################################################################
 ----------------------------------------------------------------------------------
@@ -37,9 +41,7 @@ Installing distro:
 ----------------------------------------------------------------------------------
 ##################################################################################
 
-----------------------------------------------------------------------------------
 To install this distro, type "install-fembarch" and just press enter.
-----------------------------------------------------------------------------------
 
 ##################################################################################
 
