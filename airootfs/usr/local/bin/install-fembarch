@@ -37,12 +37,16 @@ read -p "Select disk (e.g. /dev/nvme0n1): " DISK
 
 partitioning_mounting() {
     echo "[ INFO ] '0.1' Partitioning"
+    echo "[ INFO ] '0.1' Umounted /mnt to be sure nothing is mounted."
     umount -R /mnt 2>/dev/null || true
+    echo "[ INFO ] '0.1' using parted to create partitions. )"
     parted -s "$DISK" mklabel gpt
     parted -s "$DISK" mkpart ESP fat32 1MiB 513MiB
     parted -s "$DISK" set 1 esp on
     parted -s "$DISK" mkpart root ext4 513MiB 100%
     udevadm settle
+
+    echo "[ INFO ] '0.1' checking if variable DISK includes nvme or mmcblk in it :D"
 
     if [[ "$DISK" == *"nvme"* || "$DISK" == *"mmcblk"* ]]; then
         BOOT_PART="${DISK}p1"
@@ -51,6 +55,8 @@ partitioning_mounting() {
         BOOT_PART="${DISK}1"
         ROOT_PART="${DISK}2"
     fi
+
+    echo "[ INFO ] '0.1' formatting partitions.."
 
     mkfs.fat -F32 "$BOOT_PART"
     mkfs.ext4 -F "$ROOT_PART"
@@ -67,7 +73,7 @@ pacstrapping_tty() {
 pacstrapping_hyprland() {
     echo "[ INFO ] '0.2' Pacstrapping system.. "
     pacstrap /mnt base base-devel nano vi vim fastfetch git arch-install-scripts gparted hyprland xdg-desktop-portal xdg-desktop-portal-hyprland alacritty rofi waybar dolphin sddm efibootmgr grub linux linux-firmware linux-headers
-    echo "[ INFO ] '0.3 Enabling sddm, creating config.'"
+    echo "[ INFO ] '0.2' Enabling sddm, creating config."
     arch-chroot /mnt /bin/bash <<EOF
 systemctl enable sddm
 
@@ -346,10 +352,10 @@ EOF
 }
 
 copying_and_arch_chrooting() {
-    echo "[ INFO ] '0.4' creating directories..."
+    echo "[ INFO ] '0.3' creating directories..."
     mkdir -p /mnt/usr/local/bin/
     mkdir -p /mnt/usr/share/wallpaper-for-fembarch/
-    echo "[ INFO ] copying nvidia configs...."
+    echo "[ INFO ] '0.3' copying nvidia configs...."
     cp /usr/local/bin/fembinstall-files/femboy.jpg /mnt/usr/share/wallpaper-for-fembarch/femboy.jpg
     if [[ -f /usr/local/bin/fembinstall-files/nvidia-drivers/nvidia-config.sh ]]; then
         cp -f /usr/local/bin/fembinstall-files/nvidia-drivers/nvidia-config.sh /mnt/usr/local/bin/nvidia-config
@@ -360,39 +366,39 @@ copying_and_arch_chrooting() {
 
     [[ -f /usr/local/bin/nvidia-config ]] && bash /usr/local/bin/nvidia-config
 
-    echo "[ INFO ] '0.5' locale-gen things"
+    echo "[ INFO ] '0.4' locale-gen things"
 
     echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
     locale-gen
     echo "LANG=en_US.UTF-8" > /etc/locale.conf-+
 
-    echo "[ INFO ] '0.6' Note that in this versison localtime is not set and after installation or when in FembArch you need to set the localtime (it's optional)"
+    echo "[ INFO ] '0.5' Note that in this versison localtime is not set and after installation or when in FembArch you need to set the localtime (it's optional)"
 
-    echo "[ INFO ] '0.7' Creating user"
+    echo "[ INFO ] '0.6' Creating user"
 
     useradd -m -G wheel -s /bin/bash $user
     echo $user:$user_passwd | chpasswd
     echo "%wheel ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/10-fembarch
 
-    echo "[ INFO ] '0.8' Setting hostname"
+    echo "[ INFO ] '0.7' Setting hostname"
 
     echo "$HOSTNAME" > /etc/hostname
 
-    echo "[ INFO ] '0.9' Creating .config/ directory..."
+    echo "[ INFO ] '0.8' Creating .config/ directory..."
 
     mkdir -p /home/$user/.config
     chown -R $user:$user /home/$user/.config
-    
-    echo "[ INFO ] '10.0' Copying config for Hyprland..."
+
+    echo "[ INFO ] '0.9' Copying config for Hyprland..."
     cp /root/.config/hypr/hyprland.conf /home/$user/.config/hypr/hyprland.lua
 
-    echo "[ INFO ] '10.1' Installing yay for access to the AUR packages (You can remove it after install if you do not want AUR packages.)"
+    echo "[ INFO ] '10.0' Installing yay for access to the AUR packages (You can remove it after install if you do not want AUR packages.)"
 
     cd /tmp
     runuser -l "$user" -c "git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si --noconfirm"
     rm -rf /tmp/yay
 
-    echo "[ INFO ] '10.2' Installing bootloader."
+    echo "[ INFO ] '10.1' Installing bootloader."
 
     echo 'GRUB_DISTRIBUTOR="FembArch"' >> /etc/default/grub
 
@@ -450,26 +456,8 @@ echo "| User.name: $user"
 echo "| System Name (Hostname): $HOSTNAME"
 echo "| Installed FembArch on Disk: $DISK"
 echo ""
-
-sleep 5
-
-LAST_QUESTION=(
-    "1" "Enter chroot to customize the brand new system"
-    "2" "Exit script without doing anything."
-    "3" "Unmount filesystem (fs) and reboot the system (sys)."
-)
-
-wa=$(whiptail --title "Installation Complete" --menu "Choose: " 15 60 3 "${LAST_QUESTION[@]}" 3>&1 1>&2 2>&3)
-
-if [[ "$wa" == "1" ]]; then
-    arch-chroot /mnt # Chroots into /mnt
-elif [[ "$wa" == "2" ]]; then
-    exit 0 # exits with code 0 basically that everything went fine.
-else
-    echo "Unmounting filesystems..."
-    umount -R /mnt
-    sleep 0.5
-    echo "Done, now rebooting bye user :3"
-    sleep 1
-    reboot
-fi
+sleep 0.5
+echo "Thank you for installing FembArch Linux!"
+echo "The entire project for FembArch Linux is at this site: https://github.com/FembArchLinuz/FembArch"
+echo "You could install FembArch Linux manually and we'd reccomend using fembstrap in the next FembArch version. (v2.1.1 HyprFemboy)"
+exit 0
