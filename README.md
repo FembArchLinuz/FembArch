@@ -1,2 +1,1 @@
-Welcome to the FembArch Linux Github page!
-(Y'all should try out ZereneOS)
+The FembArch project isn't here because of the 2GB limit from Github so excuse us :D
