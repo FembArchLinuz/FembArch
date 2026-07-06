@@ -4,5 +4,5 @@ This Linux distribution was made for fun by a epic Romanian Developer that was b
 
 
 ## Installing this Linux distribution
-To install this Linux distribution you must need to: download this repo, pacstrap, copy, arch-chroot customize the system there a bit (only the time and motd lol)
-and then basically just you need to make your own ISO builder for FembArch if you want, there isn't one avalible YET, a tutorial would be avalible who knows?
+FembArch Linux is yet in Development, we are trying to focus more on the site for FembArch Linux so people can download the FembArch
+ISO easily from the site. FembArch will be closed-source for a while since the size of FembArch src is bigger than 2 GB somehow :(
