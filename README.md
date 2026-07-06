@@ -6,3 +6,5 @@ This Linux distribution was made for fun by a epic Romanian Developer that was b
 ## Installing this Linux distribution
 FembArch Linux is yet in Development, we are trying to focus more on the site for FembArch Linux so people can download the FembArch
 ISO easily from the site. FembArch will be closed-source for a while since the size of FembArch src is bigger than 2 GB somehow :(
+
+But atleast everyone can modify the installer and things to make their own Linux distribution!
