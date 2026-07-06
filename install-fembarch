@@ -1,0 +1,222 @@
+#!/usr/bin/env bash
+
+ # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ # Installer for FembArch v2.1.1 HyprFemboy
+ # warning: this installer can break in some situations
+ # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+set -e
+
+if ! ping -c 1 -W 3 google.com &>/dev/null; then
+   echo "FembArch: Hmmm i smell no internet connection, probably you forgot to connect to the internet?"
+   exit 1
+fi
+
+cat << 'EOF'
+ _____              _       _              _       _     _
+|  ___|__ _ __ ___ | |__   / \   _ __ ___| |__   | |   (_)_ __  _   ___  __
+| |_ / _ \ '_ ` _ \| '_ \ / _ \ | '__/ __| '_ \  | |   | | '_ \| | | \ \/ /
+|  _|  __/ | | | | | |_) / ___ \| | | (__| | | | | |___| | | | | |_| |>  <
+|_|  \___|_| |_| |_|_.__/_/   \_\_|  \___|_| |_| |_____|_|_| |_|\__,_/_/\_\
+EOF
+echo ""
+
+read -p "New User: " user
+read -p "User Password: " user_passwd
+read -p "Hostname (default: fembarch-linux): " HOSTNAME
+HOSTNAME=${HOSTNAME:-fembarch-linux}
+
+OPTIONS=(
+    "Hyprland" "Window Manager"
+    "TTY" "Pure TTY"
+)
+
+de=$(whiptail --title "Choose WM/DE" --menu "Select an WM/DE:" 15 50 3 "${OPTIONS[@]}" 3>&1 1>&2 2>&3)
+
+read -p "Select disk (e.g. /dev/nvme0n1): " DISK
+
+partitioning_mounting() {
+   echo "[ INFO ] '0.1' Partitioning"
+   echo "[ INFO ] '0.1' Umounted /mnt to be sure nothing is mounted."
+   umount -R /mnt 2>/dev/null || true
+   echo "[ INFO ] '0.1' using parted to create partitions. )"
+   parted -s "$DISK" mklabel gpt
+   parted -s "$DISK" mkpart ESP fat32 1MiB 513MiB
+   parted -s "$DISK" set 1 esp on
+   parted -s "$DISK" mkpart root ext4 513MiB 100%
+   udevadm settle
+
+   echo "[ INFO ] '0.1' checking if variable DISK includes nmve or mmcblk in it :D"
+
+   if [[ "$DISK" == *"nvme"* || "$DISK" == *"mmcblk"* ]]; then
+       BOOT_PART="${DISK}p1"
+       ROOT_PART="${DISK}p2"
+   else
+       BOOT_PART="${DISK}1"
+       ROOT_PART="${DISK}2"
+   fi
+
+   echo "[ INFO ] '0.1' formatting partitions.."
+
+   mkfs.fat -F32 "$BOOT_PART"
+   mkfs.ext4 -F "$ROOT_PART"
+   mount "$ROOT_PART" /mnt
+   mkdir -p /mnt/boot/efi
+   mount "$BOOT_PART" /mnt/boot/efi
+}
+
+pacstrapping_tty() {
+   echo "[ INFO ] '0.2' Pacstrapping system.."
+
+   pacstrap /mnt base base-devel git nano vi vim fastfetch arch-install-scripts gparted efibootmgr grub linux linux-firmware linux-headers
+}
+
+ pacstrapping_hyprland() {
+    echo "[ INFO ] '0.2' Pacstrapping system.. "
+
+    pacstrap /mnt base base-devel nano vi vim fastfetch git arch-install-scripts gparted hyprland xdg-desktop-portal xdg-desktop-portal-hyprland alacritty rofi waybar dolphin sddm efibootmgr grub linux linux-firmware linux-headers
+    echo "[ INFO ] '0.2' Enabling sddm, creating config."
+    arch-chroot /mnt /bin/bash <<EOF
+ systemctl enable sddm
+
+ mkdir -p /root/.config/hypr/
+
+ cat > /root/.config/hypr/hyprland.lua << 'INNER_EOF'
+ hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
+
+ local terminal    = "alacritty"
+ local fileManager = "dolphin"
+ local menu        = "rofi"
+
+ hl.on("hyprland.start", function () hl.exec_cmd("waybar") end)
+
+ hl.env("XCURSOR_SIZE", "24")
+ hl.env("HYPRCURSOR_SIZE", "24")
+
+ hl.config({
+    general = { gaps_in = 5, gaps_out = 20, border_size = 2,
+        col = { active_border = { colors = {"rgba(33ccffee)", "rgba(00ff99ee)"}, angle = 45 }, inactive_border = "rgba(595959aa)" },
+        layout = "dwindle" },
+    decoration = { rounding = 10, blur = { enabled = true, size = 3 } }
+ })
+
+ local mainMod = "SUPER"
+ hl.bind(mainMod .. " + Q", hl.dsp.exec_cmd(terminal))
+ hl.bind(mainMod .. " + R", hl.dsp.exec_cmd(menu))
+ hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit"))
+
+ hl.window_rule({ name = "move-hyprland-run", match = { class = "hyprland-run" }, move = "20 monitor_h-120", float = true })
+ INNER_EOF
+EOF
+}
+
+genfstabing_sys() {
+   genfstab -U /mnt >> /mnt/etc/fstab
+}
+
+os_release_things() {
+   cat > "/mnt/etc/os-release" << 'EOF'
+ NAME="FembArch HyprFemboy"
+ PRETTY_NAME="FembArch HyprFemboy"
+ ID=arch
+ BUILD_ID=rolling
+ ANSI_COLOR="38;2;23;147;209"
+ HOME_URL="https://archlinux.org/"
+ DOCUMENTATION_URL="https://wiki.archlinux.org/"
+ SUPPORT_URL="https://bbs.archlinux.org/"
+ BUG_REPORT_URL="https://gitlab.archlinux.org/groups/archlinux/-/issues"
+ PRIVACY_POLICY_URL="https://terms.archlinux.org/docs/privacy-policy/"
+EOF
+}
+
+copying_and_arch_chrooting() {
+   echo "[ INFO ] '0.3' creating directories..."
+   mkdir -p /mnt/usr/local/bin/
+   mkdir -p /mnt/usr/share/wallpaper-for-fembarch/
+   echo "[ INFO ] '0.3' copying..."
+   cp /usr/local/bin/fembinstall-files/femboy.jpg /mnt/usr/share/wallpaper-for-fembarch/femboy.jpg
+   if [[ -f /usr/local/bin/fembinstall-files/nvidia-drivers/main.go ]]; then
+       cp -f /usr/local/bin/fembinstall-files/nvidia-drivers/main.go /mnt/usr/local/bin/install-drivers.go
+   fi
+
+   arch-chroot /mnt /bin/bash <<EOF
+   set -e
+
+   go build /usr/local/bin/install-drivers.go && /usr/local/bin/install-drivers.go
+
+   echo "[ INFO ] '0.4' locale-gen things"
+
+   echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
+   locale-gen
+   echo "LANG=en_US.UTF-8" > /etc/locale.conf
+
+   echo "[ INFO ] '0.5' Note that in this versison localtime is not set and after installation or when in FembArch you need to set the localtime (it's optional)"
+
+   echo "[ INFO ] '0.6' Creating user"
+
+   useradd -m -G wheel -s /bin/bash $user
+   echo $user:$user_passwd | chpasswd
+   echo "%wheel ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/10-fembarch
+
+   echo "[ INFO ] '0.7' Setting hostname"
+
+   echo "$HOSTNAME" > /etc/hostname
+
+   echo "[ INFO ] '0.8' Creating .config/ directory..."
+
+   mkdir -p /home/$user/.config
+   chown -R $user:$user /home/$user/.config
+
+   echo "[ INFO ] '0.9' Copying config for Hyprland..."
+   cp /root/.config/hypr/hyprland.lua /home/$user/.config/hypr/hyprland.lua
+
+   echo "[ INFO ] '10.0' Installing yay..."
+   cd /tmp
+   runuser -l "$user" -c "git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si --noconfirm"
+   rm -rf /tmp/yay
+
+   echo "[ INFO ] '10.1' Installing bootloader."
+   echo 'GRUB_DISTRIBUTOR="FembArch"' >> /etc/default/grub
+   grub-install --target=x86_64-efi --efi-directory=/boot/efi --boot-directory=/boot --bootloader-id="FembArch"
+   grub-mkconfig -o /boot/grub/grub.cfg
+   mkinitcpio -P
+ EOF
+ }
+
+partitioning_mounting
+
+if [[ "$de" == "Hyprland" ]]; then
+   pacstrapping_hyprland
+elif [[ "$de" == "TTY" ]]; then
+   pacstrapping_tty
+else
+   echo "[SYSTEM]: We only accept Desktop Environments/Window Managers such like KDE and Hyprland! (Also TTY)"
+   exit 1
+fi
+
+genfstabing_sys
+os_release_things
+copying_and_arch_chrooting
+
+mkdir -p /mnt/usr/share/fembarch/ascii
+cat << 'EOF' > /mnt/usr/share/fembarch/ascii/.ascii_for_fembarch.txt
+           /\        /-\
+       /--/  \      / \
+     /    /   \    /  \
+    /    /     \  /  \
+    \--/  --    \/--/
+     /    _____  \
+    /    --       \
+   /     --   __ - \
+  /       /<3\      \
+ /__,--'    '--,__ _ \
+ EOF
+
+ cat << 'EOF' >> /mnt/home/"$user"/.bashrc
+ swaybg -i /usr/share/wallpaper-for-fembarch/femboy.jpg
+ alias nyafetch="fastfetch --logo /usr/share/fembarch/ascii/.ascii_for_fembarch.txt"
+ EOF
+
+echo "Successfully installed FembArch Linux v2.1.1 HyprFemboy"
+
+exit 0
