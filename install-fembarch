@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- # Installer for FembArch v2.1.1 HyprFemboy
+ # Installer for FembArch v2.1.2 XFemboy
  # warning: this installer can break in some situations
  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -89,6 +89,7 @@ pacstrapping_tty() {
  local menu        = "rofi"
 
  hl.on("hyprland.start", function () hl.exec_cmd("waybar") end)
+ hl.on("hyprland.start", function () hl.exec_cmd("swaybg -i /usr/share/wallpaper-for-fembarch/femboy.jpg") end)
 
  hl.env("XCURSOR_SIZE", "24")
  hl.env("HYPRCURSOR_SIZE", "24")
@@ -116,8 +117,8 @@ genfstabing_sys() {
 
 os_release_things() {
    cat > "/mnt/etc/os-release" << 'EOF'
- NAME="FembArch HyprFemboy"
- PRETTY_NAME="FembArch HyprFemboy"
+ NAME="FembArch XFemboy"
+ PRETTY_NAME="FembArch XFemboy"
  ID=arch
  BUILD_ID=rolling
  ANSI_COLOR="38;2;23;147;209"
@@ -180,8 +181,8 @@ copying_and_arch_chrooting() {
    grub-install --target=x86_64-efi --efi-directory=/boot/efi --boot-directory=/boot --bootloader-id="FembArch"
    grub-mkconfig -o /boot/grub/grub.cfg
    mkinitcpio -P
- EOF
- }
+EOF
+}
 
 partitioning_mounting
 
@@ -190,7 +191,7 @@ if [[ "$de" == "Hyprland" ]]; then
 elif [[ "$de" == "TTY" ]]; then
    pacstrapping_tty
 else
-   echo "[SYSTEM]: We only accept Desktop Environments/Window Managers such like KDE and Hyprland! (Also TTY)"
+   echo "[SYSTEM]: We only accept Desktop Environments/Window Managers such like Hyprland! (Also TTY)"
    exit 1
 fi
 
@@ -210,13 +211,13 @@ cat << 'EOF' > /mnt/usr/share/fembarch/ascii/.ascii_for_fembarch.txt
    /     --   __ - \
   /       /<3\      \
  /__,--'    '--,__ _ \
- EOF
+EOF
 
- cat << 'EOF' >> /mnt/home/"$user"/.bashrc
- swaybg -i /usr/share/wallpaper-for-fembarch/femboy.jpg
- alias nyafetch="fastfetch --logo /usr/share/fembarch/ascii/.ascii_for_fembarch.txt"
- EOF
 
-echo "Successfully installed FembArch Linux v2.1.1 HyprFemboy"
+echo 'alias nyafetch="fastfetch -l /usr/share/fembarch/ascii/.ascii_for_fembarch.txt"' >> /mnt/home/"$user"/.bashrc
+echo "nyafetch" >> /mnt/home/"$user"/.bashrc
+
+
+echo "Successfully installed FembArch Linux v2.1.2 XFemboy"
 
 exit 0
